@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FYP-III Marking Form</title>
+
+<script>
+  const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
+  const DRIVE_FOLDER_ID  = 'YOUR_FOLDER_ID_HERE';
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ══════════════════════════════════════════
+   VARIABLES & RESET
+══════════════════════════════════════════ */
+:root {
+  --navy:       #1a2744;
+  --gold:       #b8860b;
+  --gold-light: #d4a017;
+  --border:     #2a3a6a;
+  --text:       #1a1a2e;
+  --light-bg:   #f5f6fa;
+  --mid-bg:     #e8eaf2;
+  --white:      #ffffff;
+  --red:        #8b0000;
+  --green:      #1a5c1a;
+
+  /* Student accent colours */
+  --s1:         #1d4ed8;
+  --s1-light:   #dbeafe;
+  --s1-mid:     #93c5fd;
+  --s2:         #6d28d9;
+  --s2-light:   #ede9fe;
+  --s2-mid:     #c4b5fd;
+  --s3:         #b45309;
+  --s3-light:   #fef3c7;
+  --s3-mid:     #fcd34d;
+
+  /* Level colours */
+  --poor-bg:  #fee2e2; --poor-fg:  #991b1b;
+  --fair-bg:  #ffedd5; --fair-fg:  #92400e;
+  --good-bg:  #ecfccb; --good-fg:  #365314;
+  --vg-bg:    #d1fae5; --vg-fg:    #065f46;
+  --exc-bg:   #dbeafe; --exc-fg:   #1e3a8a;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  background: #cdd0db;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* ══════════════════════════════════════════
+   TOAST & OVERLAY
+══════════════════════════════════════════ */
+#toast {
+  position:fixed; top:20px; right:20px; z-index:9999;
+  background:var(--navy); color:white;
+  padding:12px 18px; border-left:4px solid var(--gold);
+  border-radius:3px; font-size:12px; font-weight:600;
+  box-shadow:0 6px 24px rgba(0,0,0,0.3); display:none; max-width:320px;
+}
+#toast.success { border-left-color:#16a34a; }
+#toast.error   { border-left-color:#dc2626; }
+#toast a       { color:var(--gold-light); text-decoration:underline; }
+#overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:8888; align-items:center; justify-content:center; }
+#overlay.show  { display:flex; }
+.overlay-box   { background:white; padding:32px 40px; max-width:380px; width:90%; border-top:4px solid var(--gold); text-align:center; }
+.spinner       { width:42px; height:42px; border:3px solid var(--mid-bg); border-top-color:var(--navy); border-radius:50%; animation:spin 0.75s linear infinite; margin:0 auto 16px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.overlay-box p { color:var(--navy); font-weight:700; font-size:13px; }
+.overlay-box small { color:#666; font-size:10px; margin-top:6px; display:block; }
+
+/* ══════════════════════════════════════════
+   PAGE & HEADER
+══════════════════════════════════════════ */
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 10mm auto;
+  background: var(--white);
+  box-shadow: 0 6px 40px rgba(0,0,0,0.22);
+}
+.header {
+  background: var(--navy);
+  padding: 13px 20px 10px;
+  display: flex; align-items: center; gap: 13px;
+  border-bottom: 4px solid var(--gold);
+}
+.header-crest {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'EB Garamond', serif; font-size: 20px; font-weight: 700;
+  color: var(--navy); flex-shrink: 0;
+}
+.header-text { flex: 1; }
+.header-dept     { color: var(--gold-light); font-size: 8.5px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 2px; }
+.header-title    { font-family: 'EB Garamond', serif; color: var(--white); font-size: 16px; font-weight: 700; line-height: 1.2; }
+.header-subtitle { color: rgba(255,255,255,0.5); font-size: 8px; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+.header-actions  { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+.btn {
+  padding: 5px 11px; font-size: 8.5px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  font-family: 'Source Sans 3', sans-serif; transition: all 0.18s; white-space: nowrap;
+}
+.btn-print { background: var(--gold); color: var(--navy); }
+.btn-print:hover { background: var(--gold-light); }
+.btn-drive { background: rgba(255,255,255,0.1); color: var(--white); border: 1px solid rgba(255,255,255,0.25); }
+.btn-drive:hover { background: rgba(255,255,255,0.2); }
+.btn-drive:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ══════════════════════════════════════════
+   SECTIONS
+══════════════════════════════════════════ */
+.body-wrap { padding: 11px 16px 16px; }
+.section   { margin-bottom: 11px; }
+.section-header {
+  background: var(--navy); color: var(--white);
+  padding: 5px 10px;
+  font-family: 'EB Garamond', serif; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+  border-left: 4px solid var(--gold);
+}
+.section-header .label {
+  background: var(--gold); color: var(--navy);
+  padding: 1px 7px; font-size: 8.5px; font-weight: 700;
+  letter-spacing: 1.5px; font-family: 'Source Sans 3', sans-serif;
+}
+.section-header .hint {
+  margin-left: auto; font-size: 7.5px; font-weight: 400;
+  opacity: 0.6; font-family: 'Source Sans 3', sans-serif;
+}
+
+/* ══════════════════════════════════════════
+   INFO TABLE
+══════════════════════════════════════════ */
+table { width: 100%; border-collapse: collapse; font-size: 9px; }
+th, td { border: 1px solid #c0c8d8; padding: 4px 6px; vertical-align: middle; }
+th { background: var(--mid-bg); font-weight: 700; text-align: center; color: var(--navy); font-size: 8.5px; }
+tr:nth-child(even) td { background: #f8f9fd; }
+.label-cell { font-weight: 700; color: var(--navy); white-space: nowrap; background: var(--light-bg) !important; width: 105px; }
+.value-cell { border-bottom: 1px solid #999; }
+.radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+.radio-item  { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 9px; }
+.radio-item input { accent-color: var(--navy); }
+.checkbox-grid { display: flex; flex-wrap: wrap; gap: 5px 12px; padding: 6px 10px; border: 1px solid #c0c8d8; background: var(--light-bg); }
+.checkbox-item { display: flex; align-items: center; gap: 3px; font-size: 9px; cursor: pointer; }
+.checkbox-item input { accent-color: var(--navy); }
+.addressed-note { font-size: 8px; color: #666; margin-top: 3px; padding: 0 10px 5px; font-style: italic; }
+td[contenteditable="true"] { outline: none; }
+td[contenteditable="true"]:focus { background: #fffde0 !important; outline: 1px solid var(--gold); }
+/* Auto-filled cells */
+.af-cell { background: #f0f4ff !important; color: var(--navy); font-weight: 600; font-size: 9px; }
+.af-cell.filled { background: #e8f0fe !important; border-left: 2px solid var(--gold); }
+
+/* ══════════════════════════════════════════
+   MARKING TABLE STRUCTURE
+══════════════════════════════════════════ */
+.marking-table th  { font-size: 8.5px; padding: 5px 5px; }
+.marking-table td  { font-size: 8.5px; vertical-align: middle; }
+
+/* Group header rows */
+.group-header td {
+  background: var(--navy) !important;
+  color: var(--gold-light);
+  font-size: 8.5px; font-weight: 700;
+  padding: 5px 10px;
+  border-color: var(--border);
+  letter-spacing: 0.3px;
+}
+.group-sub { font-size: 7.5px; opacity: 0.6; font-weight: 400; }
+
+/* Criterion cell — narrower */
+.criterion-cell {
+  width: 38%;
+  text-align: left;
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--navy);
+  padding: 5px 5px 5px 10px !important;
+  line-height: 1.35;
+}
+.cnum {
+  display: inline-block;
+  color: var(--gold);
+  font-weight: 800;
+  font-size: 8px;
+  margin-right: 3px;
+}
+
+/* Max cell */
+.max-cell {
+  width: 26px; text-align: center;
+  font-weight: 800; color: var(--navy);
+  background: var(--light-bg) !important;
+  font-size: 9px;
+}
+
+/* Sub-total row */
+.subtotal-row td {
+  background: #f0f2f8 !important;
+  color: var(--navy);
+  font-size: 8px;
+  font-style: italic;
+  padding: 3px 8px;
+  border-color: #c0c8d8;
+}
+.subtotal-row .sv {
+  text-align: center;
+  font-weight: 700;
+  font-style: normal;
+  font-size: 10px;
+  color: var(--navy);
+}
+
+/* Grand total row */
+.total-row td {
+  font-weight: 700;
+  background: var(--navy) !important;
+  color: var(--white);
+  text-align: center;
+  font-size: 10px;
+  border-color: var(--border);
+  padding: 6px 5px;
+}
+.total-row td:first-child { text-align: left; padding-left: 10px; font-size: 11px; }
+
+/* ══════════════════════════════════════════
+   STUDENT COLUMN HEADERS
+══════════════════════════════════════════ */
+.th-s1 { background: var(--s1-light) !important; color: var(--s1) !important; }
+.th-s2 { background: var(--s2-light) !important; color: var(--s2) !important; }
+.th-s3 { background: var(--s3-light) !important; color: var(--s3) !important; }
+.col-dot {
+  display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; margin-right: 4px; vertical-align: middle;
+}
+
+/* ══════════════════════════════════════════
+   SLIDER CELL
+══════════════════════════════════════════ */
+.scell {
+  padding: 6px 5px !important;
+  vertical-align: middle;
+}
+.scell.s1 { background: #f8faff !important; }
+.scell.s2 { background: #fbf8ff !important; }
+.scell.s3 { background: #fffdf5 !important; }
+
+.slider-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── Score pill ── */
+.score-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 2px 6px;
+  border-radius: 20px;
+  background: var(--mid-bg);
+  border: 1.5px solid #c8cfe0;
+  transition: background 0.25s, border-color 0.25s;
+}
+.score-num {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  transition: color 0.25s;
+  color: var(--navy);
+  min-width: 18px;
+  text-align: center;
+}
+.score-denom {
+  font-size: 7.5px;
+  color: #888;
+  font-weight: 400;
+}
+
+/* pill colour levels */
+.pill-0    { background:#f1f2f6; border-color:#c8cfe0; }
+.pill-poor { background: var(--poor-bg); border-color: #fca5a5; }
+.pill-fair { background: var(--fair-bg); border-color: #fdba74; }
+.pill-good { background: var(--good-bg); border-color: #bef264; }
+.pill-vg   { background: var(--vg-bg);   border-color: #6ee7b7; }
+.pill-exc  { background: var(--exc-bg);  border-color: var(--s1-mid); }
+
+.pill-poor .score-num { color: var(--poor-fg); }
+.pill-fair .score-num { color: var(--fair-fg); }
+.pill-good .score-num { color: var(--good-fg); }
+.pill-vg   .score-num { color: var(--vg-fg);   }
+.pill-exc  .score-num { color: var(--exc-fg);  }
+
+/* ── Level label chip ── */
+.level-chip {
+  font-size: 6.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 10px;
+  background: #dde0ec;
+  color: #555;
+  transition: background 0.25s, color 0.25s;
+  white-space: nowrap;
+}
+.chip-poor { background: var(--poor-bg); color: var(--poor-fg); }
+.chip-fair { background: var(--fair-bg); color: var(--fair-fg); }
+.chip-good { background: var(--good-bg); color: var(--good-fg); }
+.chip-vg   { background: var(--vg-bg);   color: var(--vg-fg);   }
+.chip-exc  { background: var(--exc-bg);  color: var(--exc-fg);  }
+
+/* ── Track container ── */
+.track-wrap {
+  position: relative;
+  width: 100%;
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+.track-bg {
+  position: absolute;
+  left: 0; right: 0;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--mid-bg);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+.track-fill {
+  position: absolute;
+  left: 0;
+  height: 5px;
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.15s ease, background 0.25s;
+}
+
+/* Range input sits on top */
+.score-slider {
+  position: absolute;
+  left: 0; right: 0;
+  width: 100%;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  height: 20px;
+  z-index: 2;
+}
+.score-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  border: 2.5px solid currentColor;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.22);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.score-slider:hover::-webkit-slider-thumb,
+.score-slider:focus::-webkit-slider-thumb {
+  transform: scale(1.2);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+}
+.score-slider::-moz-range-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  border: 2.5px solid currentColor;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.22);
+}
+/* Student thumb colours */
+.s1 .score-slider { color: var(--s1); }
+.s2 .score-slider { color: var(--s2); }
+.s3 .score-slider { color: var(--s3); }
+
+/* Fill colours per student */
+.s1 .track-fill { background: var(--s1); }
+.s2 .track-fill { background: var(--s2); }
+.s3 .track-fill { background: var(--s3); }
+
+/* Print: hide sliders, show pill cleanly */
+@media print {
+  body { background: white; }
+  .page { margin: 0; box-shadow: none; width: 100%; }
+  .header-actions { display: none; }
+  #toast, #overlay { display: none !important; }
+  .track-wrap, .level-chip { display: none; }
+  .score-pill { border-radius: 4px; }
+  .scell { padding: 4px 5px !important; }
+}
+
+/* ══════════════════════════════════════════
+   SECTION E / F
+══════════════════════════════════════════ */
+.bonus-footer { background: var(--light-bg); border: 1px solid #c0c8d8; padding: 5px 10px; font-size: 9px; display: flex; gap: 16px; }
+.bonus-footer span { font-weight: 700; color: var(--navy); }
+.remarks-box { border: 1px solid #c0c8d8; min-height: 130px; background: var(--light-bg); padding: 5px 7px; font-size: 9px; }
+.recommendation-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; margin: 7px 0; }
+.rec-card { border: 1.5px solid #c0c8d8; padding: 6px 9px; background: var(--light-bg); }
+.rec-card label { display: flex; align-items: flex-start; gap: 5px; cursor: pointer; }
+.rec-card input { accent-color: var(--navy); margin-top: 2px; }
+.rec-title { font-weight: 700; color: var(--navy); font-size: 9.5px; }
+.rec-sub   { font-size: 8px; color: #555; margin-top: 1px; }
+.rec-card.pass { border-color: var(--green); }
+.rec-card.cond { border-color: var(--gold); }
+.rec-card.fail { border-color: var(--red); }
+.sign-table td { padding: 5px 7px; vertical-align: top; font-size: 8px; width: 25%; }
+.sign-label { font-weight: 700; color: var(--navy); margin-bottom: 3px; font-size: 8.5px; }
+.sign-line  { border-bottom: 1px solid #999; margin: 9px 0 2px; }
+.sign-field { margin-bottom: 3px; }
+.declaration { margin-top: 9px; background: var(--navy); color: rgba(255,255,255,0.82); padding: 6px 11px; font-size: 8px; font-style: italic; border-left: 4px solid var(--gold); }
+.declaration strong { color: var(--gold-light); font-style: normal; }
+.footer { background: var(--mid-bg); border-top: 2px solid var(--navy); padding: 4px 16px; font-size: 7.5px; color: #555; display: flex; justify-content: space-between; align-items: center; letter-spacing: 0.5px; }
+
+/* ══════════════════════════════════════════
+   RESPONSIVE — MOBILE
+══════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  body { font-size: 13px; background: #d0d4e0; }
+
+  /* Page becomes full width */
+  .page { width: 100%; margin: 0; box-shadow: none; min-height: 100vh; }
+
+  /* ── Header ── */
+  .header { flex-wrap: wrap; gap: 10px; padding: 12px 14px; }
+  .header-crest { width: 42px; height: 42px; font-size: 18px; }
+  .header-dept  { font-size: 8px; letter-spacing: 1.5px; }
+  .header-title { font-size: 14px; }
+  .header-subtitle { font-size: 7.5px; }
+  .header-actions { flex-direction: row; width: 100%; gap: 8px; }
+  .btn { flex: 1; justify-content: center; padding: 8px 10px; font-size: 10px; }
+
+  /* ── Body ── */
+  .body-wrap { padding: 10px 10px 20px; }
+  .section   { margin-bottom: 14px; }
+  .section-header { font-size: 12px; padding: 6px 10px; }
+  .section-header .hint { display: none; }
+
+  /* ── Info table → stacked ── */
+  .info-table,
+  .info-table tbody,
+  .info-table tr,
+  .info-table td { display: block; width: 100% !important; }
+
+  .info-table tr {
+    display: flex; flex-wrap: wrap;
+    border-bottom: 1px solid #dde0ee;
+  }
+  .info-table tr:last-child { border-bottom: none; }
+
+  .label-cell {
+    width: 100% !important;
+    background: var(--mid-bg) !important;
+    padding: 5px 10px !important;
+    font-size: 10px;
+    border-bottom: none;
+  }
+  .value-cell,
+  .af-cell {
+    width: 100% !important;
+    padding: 6px 10px !important;
+    font-size: 12px;
+    min-height: 32px;
+    border-top: none;
+  }
+
+  /* Dropdown full width */
+  #groupSelect { font-size: 12px !important; padding: 8px 10px !important; }
+
+  /* Radio & checkboxes bigger tap */
+  .radio-group  { gap: 10px; padding: 4px 0; }
+  .radio-item   { font-size: 12px; gap: 6px; padding: 4px 0; }
+  .radio-item input  { width: 16px; height: 16px; }
+  .checkbox-grid { gap: 8px 16px; padding: 8px 10px; }
+  .checkbox-item { font-size: 12px; gap: 6px; }
+  .checkbox-item input { width: 16px; height: 16px; }
+  .addressed-note { font-size: 10px; }
+
+  /* ── Marking table ── */
+  .marking-table thead tr { display: none; } /* hide desktop col headers */
+
+  /* Each data row → flex wrap */
+  .marking-table tbody tr { display: flex; flex-wrap: wrap; border-bottom: 1px solid #dde0ee; }
+  .marking-table tbody tr:last-child { border-bottom: none; }
+
+  /* Group header full width */
+  .group-header td  { width: 100%; font-size: 11px; padding: 7px 10px; }
+
+  /* Criterion: full width top row */
+  .criterion-cell {
+    width: 100% !important;
+    font-size: 11px !important;
+    padding: 8px 10px !important;
+    background: var(--light-bg) !important;
+    border-bottom: 1px dashed #c8cfe0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .cnum { font-size: 11px; }
+
+  /* Max cell: inline with criterion on right */
+  .max-cell {
+    position: absolute; right: 14px;
+    font-size: 11px; background: transparent !important;
+    border: none !important; padding: 0 !important;
+  }
+  .criterion-cell { position: relative; padding-right: 48px !important; }
+
+  /* Mobile student col headers — show inline above each slider */
+  .marking-table .scell { flex: 1; min-width: 0; }
+
+  /* Slider cell: bigger, touch-friendly */
+  .scell { padding: 8px 6px !important; }
+  .slider-wrap { gap: 5px; }
+
+  .score-pill {
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+  .score-num { font-size: 15px; }
+  .score-denom { font-size: 9px; }
+
+  .level-chip { font-size: 8px; padding: 2px 6px; }
+
+  /* Bigger track + thumb */
+  .track-wrap { height: 28px; }
+  .track-bg   { height: 7px; }
+  .track-fill { height: 7px; }
+  .score-slider { height: 28px; }
+  .score-slider::-webkit-slider-thumb { width: 22px; height: 22px; border-width: 3px; }
+  .score-slider::-moz-range-thumb     { width: 22px; height: 22px; border-width: 3px; }
+
+  /* Mobile student header row above sliders */
+  .mob-student-header {
+    display: flex; width: 100%;
+    border-bottom: 1px solid #dde0ee;
+  }
+  .mob-student-header span {
+    flex: 1; text-align: center;
+    font-size: 10px; font-weight: 700;
+    padding: 4px 2px;
+  }
+
+  /* Sub-total row */
+  .subtotal-row td   { font-size: 11px; padding: 5px 10px; }
+  .subtotal-row .sv  { font-size: 13px; }
+
+  /* Grand total */
+  .total-row td { font-size: 12px; padding: 8px 6px; }
+  .total-row td:first-child { font-size: 13px; padding-left: 10px; }
+
+  /* ── Section E bonus table → scroll ── */
+  .section:has(> .section-header:first-child) table { font-size: 11px; }
+  .bonus-footer { flex-direction: column; gap: 6px; font-size: 10px; }
+
+  /* ── Section F ── */
+  .remarks-box { font-size: 13px; min-height: 100px; }
+  .recommendation-grid { grid-template-columns: 1fr; gap: 6px; }
+  .rec-title { font-size: 12px; }
+  .rec-sub   { font-size: 10px; }
+
+  /* Sign table → 2 cols */
+  .sign-table,
+  .sign-table tbody,
+  .sign-table tr { display: flex; flex-wrap: wrap; }
+  .sign-table td { width: 50% !important; font-size: 10px; box-sizing: border-box; }
+  .sign-label { font-size: 11px; }
+
+  .declaration { font-size: 10px; padding: 8px 12px; }
+  .footer { flex-direction: column; gap: 3px; text-align: center; font-size: 9px; padding: 8px; }
+}
+
+/* Extra small phones */
+@media (max-width: 400px) {
+  .header-actions { flex-direction: column; }
+  .btn { font-size: 9px; }
+  .scell { padding: 6px 4px !important; }
+  .score-num { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <div class="overlay-box">
+    <div class="spinner"></div>
+    <p id="overlay-msg">Processing...</p>
+    <small>Kripya wait karein</small>
+  </div>
+</div>
+<div id="toast"></div>
+
+<div class="page" id="form-page">
+
+  <!-- ── HEADER ── -->
+  <div class="header">
+    <div class="header-crest">AU</div>
+    <div class="header-text">
+      <div class="header-dept">Department of Computer Games Development</div>
+      <div class="header-title">Final Year Project (FYP)-III &mdash; Marking Form</div>
+      <div class="header-subtitle">Achievement Level Descriptors: Refer to Rubric Reference Document</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-print" onclick="window.print()">🖨 Print / Save as PDF</button>
+      <button class="btn btn-drive" id="driveBtn" onclick="saveToDrive()">⬆ Save to Google Drive</button>
+    </div>
+  </div>
+
+  <div class="body-wrap">
+
+    <!-- ── SECTION A ── -->
+    <div class="section">
+      <div class="section-header"><span class="label">SECTION A</span> Project &amp; Evaluator Information</div>
+      <table class="info-table">
+        <!-- DROPDOWN ROW -->
+        <tr style="background:#f0f2fa;">
+          <td class="label-cell" style="color:var(--gold);font-weight:800;">Select Group:</td>
+          <td colspan="5" style="padding:5px 7px;">
+            <select id="groupSelect" onchange="fillGroup(this.value)"
+              style="width:100%; padding:5px 8px; font-family:'Source Sans 3',sans-serif;
+                     font-size:9.5px; font-weight:600; border:1.5px solid var(--gold);
+                     background:white; color:var(--navy); cursor:pointer; outline:none;">
+              <option value="">— FYP Group select karein —</option>
+            </select>
+          </td>
+        </tr>
+        <!-- AUTO-FILLED ROWS -->
+        <tr>
+          <td class="label-cell">Project Title:</td>
+          <td class="value-cell af-cell" id="af-title" colspan="3">&nbsp;</td>
+          <td class="label-cell" style="width:70px">FYP Stage:</td>
+          <td class="value-cell af-cell" id="af-stage">&nbsp;</td>
+        </tr>
+        <tr>
+          <td class="label-cell">Team Members:</td>
+          <td class="value-cell af-cell" id="af-members" colspan="3" style="line-height:1.7">&nbsp;</td>
+          <td class="label-cell">Supervisor:</td>
+          <td class="value-cell af-cell" id="af-supervisor">&nbsp;</td>
+        </tr>
+        <tr>
+          <td class="label-cell">Registration No(s):</td>
+          <td class="value-cell af-cell" id="af-regs" colspan="3" style="line-height:1.7">&nbsp;</td>
+          <td class="label-cell">Batch / Section:</td>
+          <td class="value-cell af-cell" id="af-section">&nbsp;</td>
+        </tr>
+        <!-- MANUAL ROWS -->
+        <tr>
+          <td class="label-cell">Evaluation Date:</td><td class="value-cell" contenteditable="true" style="width:16%">&nbsp;</td>
+          <td class="label-cell" style="width:80px">Venue / Room:</td><td class="value-cell" contenteditable="true" style="width:16%">&nbsp;</td>
+          <td class="label-cell">Evaluator Name:</td><td class="value-cell" contenteditable="true" style="width:16%">&nbsp;</td>
+        </tr>
+        <tr>
+          <td class="label-cell">Evaluator Role:</td>
+          <td colspan="5" style="padding:4px 7px;">
+            <div class="radio-group">
+              <label class="radio-item"><input type="radio" name="role"> Supervisor</label>
+              <label class="radio-item"><input type="radio" name="role"> Internal Examiner</label>
+              <label class="radio-item"><input type="radio" name="role"> External Examiner</label>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- ── SECTION B ── -->
+    <div class="section">
+      <div class="section-header"><span class="label">SECTION B</span> Graduate Attributes Addressed</div>
+      <div class="checkbox-grid">
+        <label class="checkbox-item"><input type="checkbox"> GA1 Knowledge</label>
+        <label class="checkbox-item"><input type="checkbox"> GA2 Analysis</label>
+        <label class="checkbox-item"><input type="checkbox"> GA3 Design</label>
+        <label class="checkbox-item"><input type="checkbox"> GA4 Investigation</label>
+        <label class="checkbox-item"><input type="checkbox"> GA5 Tools</label>
+        <label class="checkbox-item"><input type="checkbox"> GA6 Society</label>
+        <label class="checkbox-item"><input type="checkbox"> GA7 SDG</label>
+        <label class="checkbox-item"><input type="checkbox"> GA8 Ethics</label>
+        <label class="checkbox-item"><input type="checkbox"> GA9 Teamwork</label>
+        <label class="checkbox-item"><input type="checkbox"> GA10 Comm.</label>
+        <label class="checkbox-item"><input type="checkbox"> GA11 Mgmt</label>
+        <label class="checkbox-item"><input type="checkbox"> GA12 Learning</label>
+      </div>
+      <div class="addressed-note">☐ Addressed (for each ticked)</div>
+    </div>
+
+    <!-- ── SECTION C ── -->
+    <div class="section">
+      <div class="section-header"><span class="label">SECTION C</span> SDG Alignment</div>
+      <div class="checkbox-grid">
+        <label class="checkbox-item"><input type="checkbox"> SDG 4 — Quality Education</label>
+        <label class="checkbox-item"><input type="checkbox"> SDG 5 — Gender Equality</label>
+        <label class="checkbox-item"><input type="checkbox"> SDG 8 — Decent Work &amp; Growth</label>
+        <label class="checkbox-item"><input type="checkbox"> SDG 9 — Innovation</label>
+        <label class="checkbox-item"><input type="checkbox"> SDG 10 — Reduced Inequalities</label>
+        <label class="checkbox-item"><input type="checkbox"> SDG 11 — Sustainable Cities</label>
+        <label class="checkbox-item"><input type="checkbox"> SDG 13 — Climate Action</label>
+        <label class="checkbox-item"><input type="checkbox"> SDG 16 — Peace &amp; Justice</label>
+        <label class="checkbox-item"><input type="checkbox"> SDG 17 — Partnerships</label>
+        <label class="checkbox-item"><input type="checkbox"> Other: <span contenteditable="true">___</span></label>
+      </div>
+    </div>
+
+    <!-- ── SECTION D ── -->
+    <div class="section">
+      <div class="section-header">
+        <span class="label">SECTION D</span> Evaluation &amp; Marks
+        <span class="hint">Slider drag karein ya number type karein</span>
+      </div>
+      <table class="marking-table">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding-left:10px;">Evaluation Criterion</th>
+            <th style="width:26px;">Max</th>
+            <th class="th-s1" style="width:19%;"><span class="col-dot" style="background:var(--s1)"></span>Student 1</th>
+            <th class="th-s2" style="width:19%;"><span class="col-dot" style="background:var(--s2)"></span>Student 2</th>
+            <th class="th-s3" style="width:19%;"><span class="col-dot" style="background:var(--s3)"></span>Student 3</th>
+          </tr>
+        </thead>
+        <tbody id="rubric-body"></tbody>
+      </table>
+    </div>
+
+    <!-- ── SECTION E ── -->
+    <div class="section">
+      <div class="section-header"><span class="label">SECTION E</span> R&amp;D / Industry Bonus (if applicable)</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left; width:55%;">R&amp;D Category</th>
+            <th>Bonus %</th><th>Max Bonus</th><th>Marks Awarded (✓ / ✗)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Novel Game Mechanic R&amp;D</td><td style="text-align:center">5%</td><td style="text-align:center">5</td><td contenteditable="true" style="text-align:center"></td></tr>
+          <tr><td>AI / Procedural Generation Research</td><td style="text-align:center">7%</td><td style="text-align:center">7</td><td contenteditable="true" style="text-align:center"></td></tr>
+          <tr><td>VR/AR/XR Innovation Research</td><td style="text-align:center">7%</td><td style="text-align:center">7</td><td contenteditable="true" style="text-align:center"></td></tr>
+          <tr><td>Animation R&amp;D</td><td style="text-align:center">5%</td><td style="text-align:center">5</td><td contenteditable="true" style="text-align:center"></td></tr>
+          <tr><td>Industry / SDG-Linked Impact Project</td><td style="text-align:center">10%</td><td style="text-align:center">10</td><td contenteditable="true" style="text-align:center"></td></tr>
+        </tbody>
+      </table>
+      <div class="bonus-footer">
+        <div><span>Total Raw Marks (out of 300):</span> &nbsp; ___________</div>
+        <div><span>R&amp;D Bonus Marks Recommended:</span> &nbsp; ___________</div>
+        <div><span>Category:</span> &nbsp; ___________</div>
+      </div>
+    </div>
+
+    <!-- ── SECTION F ── -->
+    <div class="section">
+      <div class="section-header"><span class="label">SECTION F</span> Overall Remarks &amp; Recommendation</div>
+      <div style="padding:5px 0 4px; font-size:9px; font-weight:600; color:var(--navy);">Overall Remarks (Strengths, Areas for Improvement, Specific Feedback):</div>
+      <div class="remarks-box" contenteditable="true" style="min-height:130px;">&nbsp;</div>
+      <div style="margin:7px 0 4px; font-size:9px; font-weight:700; color:var(--navy);">Recommendation:</div>
+      <div class="recommendation-grid">
+        <div class="rec-card pass"><label><input type="radio" name="rec"><div><div class="rec-title">☐ Pass</div><div class="rec-sub">Project complete &amp; accepted</div></div></label></div>
+        <div class="rec-card cond"><label><input type="radio" name="rec"><div><div class="rec-title">☐ Conditional Pass (Grade D)</div><div class="rec-sub">Minor revisions — 40–44.99%</div></div></label></div>
+        <div class="rec-card fail"><label><input type="radio" name="rec"><div><div class="rec-title">☐ Fail / Re-evaluation (Grade F)</div><div class="rec-sub">Score below 40% — Chairperson review</div></div></label></div>
+      </div>
+      <table class="sign-table" style="margin-top:7px;">
+        <tr>
+          <td><div class="sign-label">Supervisor</div><div class="sign-field">Name:<div class="sign-line"></div></div><div class="sign-field">Sign:<div class="sign-line"></div></div><div class="sign-field">Date:<div class="sign-line"></div></div></td>
+          <td><div class="sign-label">Internal Examiner</div><div class="sign-field">Name:<div class="sign-line"></div></div><div class="sign-field">Sign:<div class="sign-line"></div></div><div class="sign-field">Date:<div class="sign-line"></div></div></td>
+          <td><div class="sign-label">External Examiner</div><div class="sign-field">Name:<div class="sign-line"></div></div><div class="sign-field">Sign:<div class="sign-line"></div></div><div class="sign-field">Date:<div class="sign-line"></div></div></td>
+          <td><div class="sign-label">FYP Coordinator</div><div class="sign-field">Name:<div class="sign-line"></div></div><div class="sign-field">Sign:<div class="sign-line"></div></div><div class="sign-field">Date:<div class="sign-line"></div></div></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="declaration">
+      <strong>Declaration:</strong> I confirm that I have evaluated this project independently and in good faith, in accordance with the FYP rubrics and guidelines of the Department of Computer Games Development, FCAI, Air University Islamabad. All marks have been awarded based solely on the merit of the work presented.
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Dept. of Computer Games Development, FCAI &nbsp;|&nbsp; FYP-3 Marking Form</span>
+    <span>Air University Islamabad</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+// ─── Rubric data ─────────────────────────────────────
+const RUBRIC = [
+  { group:'1. FINAL GAME PRODUCT: PLAYABLE BUILD', max:90, items:[
+    {id:'1_1', label:'1.1', name:'Core Gameplay Mechanics &amp; Responsiveness',      max:25},
+    {id:'1_2', label:'1.2', name:'Level Design, Content Depth &amp; Replayability',   max:20},
+    {id:'1_3', label:'1.3', name:'Technical Complexity &amp; Implementation Quality', max:20},
+    {id:'1_4', label:'1.4', name:'UI/UX Design &amp; Player Experience',              max:15},
+    {id:'1_5', label:'1.5', name:'Originality, Creativity &amp; Innovation',          max:10},
+  ]},
+  { group:'2. LIVE GAME DEMONSTRATION', max:45, items:[
+    {id:'2_1', label:'2.1', name:'Demo Fluency, Preparation &amp; Stage Presence',    max:15},
+    {id:'2_2', label:'2.2', name:'Feature Completeness vs. Proposed Scope',           max:15},
+    {id:'2_3', label:'2.3', name:'VR/AR/Platform Setup &amp; Execution (if appl.)',   max:15},
+  ]},
+  { group:'3. MEDIA TRAILERS', max:30, items:[
+    {id:'3_1', label:'3.1', name:'Gameplay Trailer — Quality, Coverage &amp; Editing',     max:15},
+    {id:'3_2', label:'3.2', name:'Commercial Trailer — Marketing Appeal &amp; Production', max:15},
+  ]},
+  { group:'4. FYP III THESIS DOCUMENT', max:60, items:[
+    {id:'4_1', label:'4.1', name:'Structure, Format &amp; Chapter Completeness',           max:20},
+    {id:'4_2', label:'4.2', name:'Technical Writing Quality &amp; Academic Rigour',        max:20},
+    {id:'4_3', label:'4.3', name:'Reflection, Limitations &amp; Future Work',              max:12},
+    {id:'4_4', label:'4.4', name:'Plagiarism Compliance (Similarity ≤ 15%)',               max:8 },
+  ]},
+  { group:'5. VIVA VOICE: Q&amp;A SESSION', max:45, items:[
+    {id:'5_1', label:'5.1', name:'Technical Depth &amp; Accuracy of Answers',         max:18},
+    {id:'5_2', label:'5.2', name:'Individual Contribution &amp; Ownership',           max:15},
+    {id:'5_3', label:'5.3', name:'Confidence, Clarity &amp; Professionalism',         max:12},
+  ]},
+  { group:'6. PRESENTATION &amp; PHYSICAL DISPLAY', max:30, items:[
+    {id:'6_1', label:'6.1', name:'Standee Poster: Design, Quality &amp; Content',     max:15},
+    {id:'6_2', label:'6.2', name:'Overall Station Setup, Organisation &amp; Polish',  max:15},
+  ]},
+];
+
+// ─── Level helpers ────────────────────────────────────
+function levelKey(val, max) {
+  if (!val) return '0';
+  const p = val / max * 100;
+  if (p < 40) return 'poor';
+  if (p < 55) return 'fair';
+  if (p < 70) return 'good';
+  if (p < 85) return 'vg';
+  return 'exc';
+}
+const LEVEL_LABELS = { '0':'—', poor:'Poor', fair:'Fair', good:'Good', vg:'Very Good', exc:'Excellent' };
+
+// ─── Build one slider cell ─────────────────────────────
+function sliderCell(id, max, s) {
+  return `
+  <td class="scell s${s}">
+    <div class="slider-wrap">
+      <!-- Score pill -->
+      <div class="score-pill pill-0" id="pill_${id}_${s}">
+        <span class="score-num" id="num_${id}_${s}">0</span>
+        <span class="score-denom">/ ${max}</span>
+      </div>
+      <!-- Level chip -->
+      <div class="level-chip" id="chip_${id}_${s}">—</div>
+      <!-- Custom slider track -->
+      <div class="track-wrap s${s}">
+        <div class="track-bg"></div>
+        <div class="track-fill" id="fill_${id}_${s}" style="width:0%"></div>
+        <input type="range" class="score-slider"
+          min="0" max="${max}" value="0" step="1"
+          id="sl_${id}_${s}"
+          oninput="onSlide('${id}',${s},${max},this.value)">
+      </div>
+    </div>
+  </td>`;
+}
+
+// ─── Build table ──────────────────────────────────────
+function buildTable() {
+  const body = document.getElementById('rubric-body');
+  let html = '';
+
+  // Mobile-only student header row
+  const mobHeader = `<tr class="mob-student-header" style="display:none" id="mob-hdr">
+    <td style="width:100%;padding:0;border:none;" colspan="5">
+      <div style="display:flex;">
+        <span style="flex:1;text-align:center;font-size:10px;font-weight:700;padding:5px 2px;background:var(--s1-light);color:var(--s1);">● Student 1</span>
+        <span style="flex:1;text-align:center;font-size:10px;font-weight:700;padding:5px 2px;background:var(--s2-light);color:var(--s2);">● Student 2</span>
+        <span style="flex:1;text-align:center;font-size:10px;font-weight:700;padding:5px 2px;background:var(--s3-light);color:var(--s3);">● Student 3</span>
+      </div>
+    </td>
+  </tr>`;
+
+  RUBRIC.forEach((grp, gi) => {
+    html += `<tr class="group-header"><td colspan="5">${grp.group} <span class="group-sub">Max: ${grp.max}</span></td></tr>`;
+    grp.items.forEach(item => {
+      html += `<tr>
+        <td class="criterion-cell"><span class="cnum">${item.label}</span>${item.name}</td>
+        <td class="max-cell">${item.max}</td>
+        ${sliderCell(item.id, item.max, 1)}
+        ${sliderCell(item.id, item.max, 2)}
+        ${sliderCell(item.id, item.max, 3)}
+      </tr>`;
+    });
+    html += `<tr class="subtotal-row">
+      <td colspan="2" style="padding-left:10px;">Section ${gi+1} sub-total &nbsp;<span style="opacity:.5">(max ${grp.max})</span></td>
+      <td class="sv" id="g${gi+1}s1">0</td>
+      <td class="sv" id="g${gi+1}s2">0</td>
+      <td class="sv" id="g${gi+1}s3">0</td>
+    </tr>`;
+  });
+  html += `<tr class="total-row">
+    <td>GRAND TOTAL</td><td style="font-size:12px;font-weight:900;">300</td>
+    <td id="tot1">0</td><td id="tot2">0</td><td id="tot3">0</td>
+  </tr>`;
+  body.innerHTML = mobHeader + html;
+
+  // Show mobile header row on small screens
+  function checkMobile() {
+    const hdr = document.getElementById('mob-hdr');
+    if (hdr) hdr.style.display = window.innerWidth <= 768 ? 'table-row' : 'none';
+  }
+  checkMobile();
+  window.addEventListener('resize', checkMobile);
+}
+
+// ─── Slide handler ────────────────────────────────────
+function onSlide(id, s, max, rawVal) {
+  const val = parseInt(rawVal) || 0;
+  const key = levelKey(val, max);
+  const pct = (val / max * 100).toFixed(1);
+
+  // pill
+  const pill = document.getElementById(`pill_${id}_${s}`);
+  pill.className = `score-pill pill-${key === '0' ? '0' : key}`;
+
+  // number
+  document.getElementById(`num_${id}_${s}`).textContent = val;
+
+  // chip
+  const chip = document.getElementById(`chip_${id}_${s}`);
+  chip.className = `level-chip${key === '0' ? '' : ' chip-'+key}`;
+  chip.textContent = LEVEL_LABELS[key];
+
+  // fill track
+  document.getElementById(`fill_${id}_${s}`).style.width = pct + '%';
+
+  calcTotals();
+}
+
+// ─── Totals ───────────────────────────────────────────
+function calcTotals() {
+  let grand = [0,0,0];
+  RUBRIC.forEach((grp, gi) => {
+    let sub = [0,0,0];
+    grp.items.forEach(item => {
+      [1,2,3].forEach(s => {
+        const el = document.getElementById(`sl_${item.id}_${s}`);
+        if (el) sub[s-1] += parseInt(el.value)||0;
+      });
+    });
+    [1,2,3].forEach(s => {
+      const el = document.getElementById(`g${gi+1}s${s}`);
+      if (el) el.textContent = sub[s-1];
+      grand[s-1] += sub[s-1];
+    });
+  });
+  [1,2,3].forEach(s => {
+    const el = document.getElementById(`tot${s}`);
+    if (el) el.textContent = grand[s-1];
+  });
+}
+
+// ─── Toast / overlay ─────────────────────────────────
+function showToast(msg, type='info', dur=6000) {
+  const t = document.getElementById('toast');
+  t.innerHTML = msg; t.className = type; t.style.display = 'block';
+  setTimeout(() => t.style.display='none', dur);
+}
+function setOverlay(show, msg='') {
+  const o = document.getElementById('overlay');
+  if (show) { document.getElementById('overlay-msg').textContent = msg; o.classList.add('show'); }
+  else o.classList.remove('show');
+}
+
+// ─── PDF + Drive ──────────────────────────────────────
+async function generatePDFBlob() {
+  const { jsPDF } = window.jspdf;
+  const page = document.getElementById('form-page');
+  const acts = page.querySelector('.header-actions');
+  acts.style.visibility = 'hidden';
+  setOverlay(true, 'PDF generate ho raha hai...');
+  const canvas = await html2canvas(page, { scale:2, useCORS:true, logging:false, scrollX:0, scrollY:0, windowWidth:page.scrollWidth });
+  acts.style.visibility = 'visible';
+  const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const pw = pdf.internal.pageSize.getWidth();
+  const ph = pdf.internal.pageSize.getHeight();
+  const ih = pw * canvas.height / canvas.width;
+  const img = canvas.toDataURL('image/jpeg', 0.93);
+  let y = 0;
+  while (y < ih) { if (y>0) pdf.addPage(); pdf.addImage(img,'JPEG',0,-y,pw,ih); y+=ph; }
+  return pdf.output('arraybuffer');
+}
+
+async function uploadToDrive(token, buf) {
+  const title = document.getElementById('groupSelect')?.dataset.title || document.querySelector('.af-cell.filled')?.textContent?.trim() || 'FYP3';
+  const date  = new Date().toISOString().slice(0,10);
+  const meta  = { name:`FYP3-Marking-${title}-${date}.pdf`, mimeType:'application/pdf',
+    ...(DRIVE_FOLDER_ID && !DRIVE_FOLDER_ID.includes('YOUR') ? { parents:[DRIVE_FOLDER_ID] } : {}) };
+  const form  = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(meta)], {type:'application/json'}));
+  form.append('file',     new Blob([buf], {type:'application/pdf'}));
+  setOverlay(true, 'Google Drive mein upload ho raha hai...');
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
+    method:'POST', headers:{Authorization:`Bearer ${token}`}, body:form });
+  return res.json();
+}
+
+async function saveToDrive() {
+  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.includes('YOUR_CLIENT_ID')) {
+    showToast('⚠️ Pehle GOOGLE_CLIENT_ID set karein', 'error', 7000); return;
+  }
+  const btn = document.getElementById('driveBtn');
+  btn.disabled=true; btn.textContent='⏳ Processing...';
+  try {
+    const tc = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: async tr => {
+        if (tr.error) { showToast('❌ Login fail: '+tr.error,'error'); btn.disabled=false; btn.textContent='⬆ Save to Google Drive'; setOverlay(false); return; }
+        try {
+          const r = await uploadToDrive(tr.access_token, await generatePDFBlob());
+          setOverlay(false);
+          if (r.id) showToast(`✅ Drive mein save ho gaya!<br><a href="${r.webViewLink}" target="_blank">📄 File kholein →</a>`,'success',9000);
+          else showToast('❌ Upload fail','error');
+        } catch(e) { setOverlay(false); showToast('❌ Error: '+e.message,'error'); }
+        btn.disabled=false; btn.textContent='⬆ Save to Google Drive';
+      }
+    });
+    tc.requestAccessToken({prompt:'consent'});
+  } catch(e) { showToast('❌ Google API load nahi hua','error'); btn.disabled=false; btn.textContent='⬆ Save to Google Drive'; setOverlay(false); }
+}
+
+// ─── FYP Groups Data ─────────────────────────────────
+const FYP_GROUPS = [
+  { id:'BSCGD22-46', title:'Virtual Clinic Training Simulator',        sec:'A', supervisor:'Mr. Hamza Khakwani',
+    members:[{reg:'220517',name:'Abdul Sami Khan'},{reg:'220505',name:'Muhammad Aliyan Haider'},{reg:'220555',name:'Muhammad Hasaan'}] },
+  { id:'BSCGD22-47', title:'Me and My Shadow',                         sec:'A', supervisor:'Dr. Hameedur Rahman / Mr. Saad (Co-Sup)',
+    members:[{reg:'220477',name:'Abdul Moeez'}] },
+  { id:'BSCGD22-48', title:'Dusk Fall',                                sec:'A', supervisor:'Ms. Tanvir Fatima',
+    members:[{reg:'222554',name:'Aatir Mumtaz'},{reg:'220513',name:'Areeb Ibne Hafeez'}] },
+  { id:'BSCGD22-49', title:'3025',                                     sec:'B', supervisor:'Mr. Amir Ali',
+    members:[{reg:'220488',name:'Ansha Arif'},{reg:'220482',name:'Daniyal Abdullah'},{reg:'220516',name:'Sunya Aslam'}] },
+  { id:'BSCGD22-50', title:'Echoes of Battlefield',                    sec:'A', supervisor:'Mr. Amir Ali',
+    members:[{reg:'220491',name:'M Murtaza Ashraf'},{reg:'220467',name:'Muhammad Qasim'},{reg:'220495',name:'Muhammad Talha'}] },
+  { id:'BSCGD22-51', title:'Schio Shadow',                             sec:'A', supervisor:'Mr. Saqib Raza',
+    members:[{reg:'220479',name:'Momina Shams'},{reg:'220537',name:'Muqadas Sajid'},{reg:'222565',name:'Waleed Aslam'}] },
+  { id:'BSCGD22-52', title:'Flight Academy',                           sec:'A', supervisor:'Mr. Saqib Raza',
+    members:[{reg:'220469',name:'Fahad Farooq'},{reg:'220956',name:'Ramsha Azhar'},{reg:'220551',name:'Syed Sohaib Hassan Rizvi'}] },
+  { id:'BSCGD22-53', title:'Heist Protocol',                           sec:'A', supervisor:'Mr. Saqib Raza',
+    members:[{reg:'220521',name:'Khubaib Khan'},{reg:'222581',name:'Mohammad Ali'},{reg:'220471',name:'Muhammad Abdullah'}] },
+  { id:'BSCGD22-54', title:'SafetyXperience',                         sec:'A', supervisor:'Dr. Numan Ali',
+    members:[{reg:'220507',name:'Abeera Khan'},{reg:'222549',name:'Fatima Rehman'},{reg:'220523',name:'Muhammad Matin Ud Din'}] },
+  { id:'BSCGD22-55', title:'WildTure',                                 sec:'A', supervisor:'Dr. Numan Ali',
+    members:[{reg:'220481',name:'Shiza Akhlaq'},{reg:'220475',name:'Urwa Rasool'},{reg:'220543',name:'Zarrar Khan'}] },
+  { id:'BSCGD22-56', title:'Chase on Capture',                        sec:'B', supervisor:'Mr. Mudabbir Ali',
+    members:[{reg:'220468',name:'Abdullah Nasir'},{reg:'220466',name:'Musa Bin Danish'}] },
+  { id:'BSCGD22-57', title:'Dreadbound',                              sec:'B', supervisor:'Mr. Mudabbir Ali',
+    members:[{reg:'222555',name:'M Aqib Mahmood'},{reg:'220564',name:'M Umair Khan Niazi'},{reg:'220562',name:'Shawaiz Hussain'}] },
+  { id:'BSCGD22-58', title:'Toon Rush',                               sec:'B', supervisor:'Mr. Mudabbir Ali',
+    members:[{reg:'220524',name:'Hafiz Sultan Abdul Rafay'},{reg:'220502',name:'Hammad Ali'},{reg:'220548',name:'Muhammad Awais'}] },
+  { id:'BSCGD22-59', title:'DasktaK: The Last Knock',                 sec:'B', supervisor:'Dr. Hameedur Rahman / Mr. Saad (Co-Sup)',
+    members:[{reg:'220506',name:'Malik Junaid'},{reg:'220532',name:'Syed Saffi Haider'},{reg:'220560',name:'Tazeem Asif'}] },
+  { id:'BSCGD22-60', title:'Samurai Apocalypse: Standard in Time',    sec:'B', supervisor:'Mr. Adil Shah',
+    members:[{reg:'220484',name:'Muhammad Yaseen'},{reg:'220494',name:'Syed Ali Hayat'},{reg:'220504',name:'Umama Gul'}] },
+  { id:'BSCGD22-61', title:'MedEd VR: Real Skills; Virtual World',    sec:'B', supervisor:'Mr. Amir Ali',
+    members:[{reg:'220554',name:'Naqeeb Ur Rehman'},{reg:'220500',name:'Rafia Ayaz'}] },
+  { id:'BSCGD22-62', title:'Chroma Blast',                            sec:'A', supervisor:'Mr. Waqas',
+    members:[{reg:'220533',name:'Hamza Ahmad'},{reg:'220561',name:'Syed Farrukh Abbas'},{reg:'220519',name:'Zohaib Shauka'}] },
+  { id:'BSCGD22-63', title:'Air Traffic Control VR Simulation',       sec:'B', supervisor:'Mr. Saqib / Dr. Hameedur Rahman (Co-Sup)',
+    members:[{reg:'220518',name:'Marriyam Rashid'},{reg:'220496',name:'Nawal Badar'}] },
+  { id:'BSCGD22-64', title:'Daughters of the Soil',                   sec:'B', supervisor:'Mr. Saad',
+    members:[{reg:'220552',name:'Hibba Umer'}] },
+  { id:'BSCGD22-65', title:'Echo Six: The Last Stand',                sec:'B', supervisor:'Mr. Mudabbir Ali',
+    members:[{reg:'220472',name:'Aban Ali Shah'},{reg:'220538',name:'Basit Alam'},{reg:'220546',name:'Muhammad Umer Wahab'}] },
+  { id:'BSCGD22-66', title:'Malaal',                                  sec:'B', supervisor:'Mr. Hamza Khakwani',
+    members:[{reg:'220556',name:'Mahroosha Khan'},{reg:'220534',name:'Muhammad Musa Wasim'},{reg:'220510',name:'Syeda Laraib Fatima'}] },
+  { id:'BSCGD22-67', title:'Echoes of the Forgotten — An Interactive Novel', sec:'A', supervisor:'Mr. Altaf Hussain',
+    members:[{reg:'220487',name:'Laiba Kamran'},{reg:'220559',name:'Mirha Saeed'},{reg:'220489',name:'Zuha Kaokab'}] },
+  { id:'BSCGD22-68', title:'Multiverse Oddessey',                     sec:'A', supervisor:'Mr. Altaf Hussain',
+    members:[{reg:'220497',name:'Muhammad Jawad'},{reg:'220541',name:'Muskaan Tausif'},{reg:'210274',name:'Faiza Aftab'}] },
+  { id:'BSCGD22-69', title:'Retro Dodge Rumble',                      sec:'B', supervisor:'Mr. Altaf Hussain',
+    members:[{reg:'220558',name:'Aleena Fatima'},{reg:'220520',name:'Muhammad Shayan'},{reg:'220528',name:'Yameen Shabbir'}] },
+  { id:'BSCGD22-70', title:'PhotoMeron',                              sec:'A', supervisor:'Mr. Altaf Hussain',
+    members:[{reg:'220511',name:'Abdul Raffay Naveed'},{reg:'220515',name:'Abdullah Bin Aneel'},{reg:'220545',name:'Syed Haider Ali'}] },
+  { id:'BSCGD22-71', title:'Alive In Borderland',                     sec:'A', supervisor:'Mr. Usman',
+    members:[{reg:'220529',name:'Rehan Ali'},{reg:'220463',name:'Syed Hassan Mujtaba'},{reg:'220465',name:'Talal Haider'}] },
+  { id:'BSCGD22-72', title:'Shadow Pursuit',                          sec:'A', supervisor:'Mr. Usman',
+    members:[{reg:'220499',name:'Ismail Farooq Khan'},{reg:'220493',name:'Muhammad Waseem'},{reg:'220539',name:'Qasim Islam'}] },
+  { id:'BSCGD22-73', title:'Escape From Cyberland',                   sec:'B', supervisor:'Mr. Amir Ali / Dr. Numan Ali',
+    members:[{reg:'220522',name:'Abdul Moheed'},{reg:'220478',name:'Muhammad Fazeel'},{reg:'220550',name:'Muhammad Saqib'}] },
+  { id:'BSCGD22-74', title:'Cyber Safe',                              sec:'B', supervisor:'Ms. Hifsa / Dr. Hameedur Rahman (Co-Sup)',
+    members:[{reg:'220530',name:'Faizan Ali'},{reg:'220527',name:'Amna Shaukat Mughal'}] },
+  { id:'BSCGD22-75', title:'Final Deception',                         sec:'B', supervisor:'Mr. Hamza Khakwani',
+    members:[{reg:'220540',name:'Faiq Ahmed'}] },
+];
+
+// ─── Populate dropdown ────────────────────────────────
+function initDropdown() {
+  const sel = document.getElementById('groupSelect');
+  FYP_GROUPS.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.id;
+    opt.textContent = `${g.id}  —  ${g.title}`;
+    sel.appendChild(opt);
+  });
+}
+
+// ─── Auto-fill Section A ──────────────────────────────
+function fillGroup(id) {
+  const afIds = ['af-title','af-stage','af-members','af-supervisor','af-regs','af-section'];
+
+  if (!id) {
+    afIds.forEach(i => { const el = document.getElementById(i); el.innerHTML = '&nbsp;'; el.classList.remove('filled'); });
+    return;
+  }
+
+  const g = FYP_GROUPS.find(x => x.id === id);
+  if (!g) return;
+
+  const namesHTML = g.members.map(m => `<span style="display:block">${m.name}</span>`).join('');
+  const regsHTML  = g.members.map(m => `<span style="display:block">${m.reg}</span>`).join('');
+
+  const fill = (elId, html) => {
+    const el = document.getElementById(elId);
+    el.innerHTML = html;
+    el.classList.add('filled');
+  };
+
+  fill('af-title',      g.title);
+  fill('af-stage',      'FYP-III');
+  fill('af-members',    namesHTML);
+  fill('af-supervisor', g.supervisor);
+  fill('af-regs',       regsHTML);
+  fill('af-section',    `BSCGD 22 — Sec ${g.sec}`);
+
+  // also update PDF filename source
+  document.getElementById('groupSelect').dataset.title = g.title;
+}
+
+// ─── Init ─────────────────────────────────────────────
+initDropdown();
+buildTable();
+</script>
+</body>
+</html>
