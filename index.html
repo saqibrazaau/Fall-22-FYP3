@@ -103,9 +103,9 @@ body {
   color: var(--navy); flex-shrink: 0;
 }
 .header-text { flex: 1; }
-.header-dept     { color: var(--gold-light); font-size: 8.5px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 2px; }
-.header-title    { font-family: 'EB Garamond', serif; color: var(--white); font-size: 16px; font-weight: 700; line-height: 1.2; }
-.header-subtitle { color: rgba(255,255,255,0.5); font-size: 8px; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+.header-dept     { color: var(--gold-light); font-size: 9.5px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 2px; }
+.header-title    { font-family: 'EB Garamond', serif; color: var(--white); font-size: 18px; font-weight: 700; line-height: 1.2; }
+.header-subtitle { color: rgba(255,255,255,0.5); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
 .header-actions  { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
 .btn {
   padding: 5px 11px; font-size: 8.5px; font-weight: 700; letter-spacing: 0.8px;
@@ -155,36 +155,36 @@ body {
 /* ══════════════════════════════════════════
    INFO TABLE
 ══════════════════════════════════════════ */
-table { width: 100%; border-collapse: collapse; font-size: 9px; }
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
 th, td { border: 1px solid #c0c8d8; padding: 4px 6px; vertical-align: middle; }
-th { background: var(--mid-bg); font-weight: 700; text-align: center; color: var(--navy); font-size: 8.5px; }
+th { background: var(--mid-bg); font-weight: 700; text-align: center; color: var(--navy); font-size: 10.5px; }
 tr:nth-child(even) td { background: #f8f9fd; }
 .label-cell { font-weight: 700; color: var(--navy); white-space: nowrap; background: var(--light-bg) !important; width: 105px; }
 .value-cell { border-bottom: 1px solid #999; }
 .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
-.radio-item  { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 9px; }
+.radio-item  { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 11px; }
 .radio-item input { accent-color: var(--navy); }
 .checkbox-grid { display: flex; flex-wrap: wrap; gap: 5px 12px; padding: 6px 10px; border: 1px solid #c0c8d8; background: var(--light-bg); }
-.checkbox-item { display: flex; align-items: center; gap: 3px; font-size: 9px; cursor: pointer; }
+.checkbox-item { display: flex; align-items: center; gap: 3px; font-size: 11px; cursor: pointer; }
 .checkbox-item input { accent-color: var(--navy); }
 .addressed-note { font-size: 8px; color: #666; margin-top: 3px; padding: 0 10px 5px; font-style: italic; }
 td[contenteditable="true"] { outline: none; }
 td[contenteditable="true"]:focus { background: #fffde0 !important; outline: 1px solid var(--gold); }
 /* Auto-filled cells */
-.af-cell { background: #f0f4ff !important; color: var(--navy); font-weight: 600; font-size: 9px; }
+.af-cell { background: #f0f4ff !important; color: var(--navy); font-weight: 600; font-size: 11px; }
 .af-cell.filled { background: #e8f0fe !important; border-left: 2px solid var(--gold); }
 
 /* ══════════════════════════════════════════
    MARKING TABLE STRUCTURE
 ══════════════════════════════════════════ */
-.marking-table th  { font-size: 8.5px; padding: 5px 5px; }
-.marking-table td  { font-size: 8.5px; vertical-align: middle; }
+.marking-table th  { font-size: 10.5px; padding: 5px 5px; }
+.marking-table td  { font-size: 10.5px; vertical-align: middle; }
 
 /* Group header rows */
 .group-header td {
   background: var(--navy) !important;
   color: var(--gold-light);
-  font-size: 8.5px; font-weight: 700;
+  font-size: 10px; font-weight: 700;
   padding: 5px 10px;
   border-color: var(--border);
   letter-spacing: 0.3px;
@@ -288,7 +288,7 @@ td[contenteditable="true"]:focus { background: #fffde0 !important; outline: 1px 
   transition: background 0.25s, border-color 0.25s;
 }
 .score-num {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1;
   transition: color 0.25s;
@@ -297,7 +297,7 @@ td[contenteditable="true"]:focus { background: #fffde0 !important; outline: 1px 
   text-align: center;
 }
 .score-denom {
-  font-size: 7.5px;
+  font-size: 9px;
   color: #888;
   font-weight: 400;
 }
@@ -676,8 +676,8 @@ td[contenteditable="true"]:focus { background: #fffde0 !important; outline: 1px 
         </tr>
         <!-- MANUAL ROWS -->
         <tr>
-          <td class="label-cell">Evaluation Date:</td><td class="value-cell" contenteditable="true" style="width:16%">&nbsp;</td>
-          <td class="label-cell" style="width:80px">Venue / Room:</td><td class="value-cell" contenteditable="true" style="width:16%">&nbsp;</td>
+          <td class="label-cell">Evaluation Date:</td><td class="value-cell" id="eval-date" contenteditable="true" style="width:16%">&nbsp;</td>
+          <td class="label-cell" style="width:80px">Venue:</td><td class="value-cell" id="eval-venue" contenteditable="true" style="width:16%">CGD Faculty Office</td>
           <td class="label-cell">Evaluator Name:</td><td class="value-cell" contenteditable="true" style="width:16%">&nbsp;</td>
         </tr>
         <tr>
@@ -1015,6 +1015,10 @@ async function generatePDFBlob() {
   // Small delay so layout reflows
   await new Promise(r => setTimeout(r, 120));
 
+  // Hide level-chips in PDF (score pill is enough)
+  const chips = page.querySelectorAll('.level-chip');
+  chips.forEach(c => c.style.display = 'none');
+
   const canvas = await html2canvas(page, {
     scale        : 2.5,          // HD — 2.5x pixel density
     useCORS      : true,
@@ -1032,6 +1036,7 @@ async function generatePDFBlob() {
   page.style.minWidth    = originalMinWidth;
   page.style.transform   = originalTransform;
   document.body.style.overflow = originalOverflow;
+  chips.forEach(c => c.style.display = '');
 
   acts.style.visibility = 'visible';
 
@@ -1425,6 +1430,18 @@ function fillGroup(id) {
 // ─── Init ─────────────────────────────────────────────
 initDropdown();
 buildTable();
+
+// Auto-fill today's date
+(function() {
+  const d = new Date();
+  const months = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  const day = d.getDate();
+  const suffix = (day===1||day===21||day===31)?'st':(day===2||day===22)?'nd':(day===3||day===23)?'rd':'th';
+  const dateStr = `${day}${suffix} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  const dateCell = document.getElementById('eval-date');
+  if (dateCell) dateCell.textContent = dateStr;
+})();
 </script>
 </body>
 </html>
