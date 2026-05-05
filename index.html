@@ -998,13 +998,48 @@ async function generatePDFBlob() {
   const acts = page.querySelector('.header-actions');
   acts.style.visibility = 'hidden';
   setOverlay(true, 'PDF generate ho raha hai...');
-  const canvas = await html2canvas(page, { scale:2, useCORS:true, logging:false, scrollX:0, scrollY:0, windowWidth:page.scrollWidth });
+
+  // ── Force desktop width (1200px) regardless of device ──
+  const DESKTOP_WIDTH = 1200;
+  const originalWidth  = page.style.width;
+  const originalMinWidth = page.style.minWidth;
+  const originalTransform = page.style.transform;
+  const originalOverflow = document.body.style.overflow;
+
+  // Temporarily expand to desktop width for capture
+  page.style.width       = DESKTOP_WIDTH + 'px';
+  page.style.minWidth    = DESKTOP_WIDTH + 'px';
+  page.style.transform   = 'none';
+  document.body.style.overflow = 'visible';
+
+  // Small delay so layout reflows
+  await new Promise(r => setTimeout(r, 120));
+
+  const canvas = await html2canvas(page, {
+    scale        : 2.5,          // HD — 2.5x pixel density
+    useCORS      : true,
+    logging      : false,
+    scrollX      : 0,
+    scrollY      : 0,
+    windowWidth  : DESKTOP_WIDTH,
+    windowHeight : page.scrollHeight,
+    width        : DESKTOP_WIDTH,
+    height       : page.scrollHeight,
+  });
+
+  // Restore original styles
+  page.style.width       = originalWidth;
+  page.style.minWidth    = originalMinWidth;
+  page.style.transform   = originalTransform;
+  document.body.style.overflow = originalOverflow;
+
   acts.style.visibility = 'visible';
+
   const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
   const pw = pdf.internal.pageSize.getWidth();
   const ph = pdf.internal.pageSize.getHeight();
   const ih = pw * canvas.height / canvas.width;
-  const img = canvas.toDataURL('image/jpeg', 0.93);
+  const img = canvas.toDataURL('image/jpeg', 0.95);
   let y = 0;
   while (y < ih) { if (y>0) pdf.addPage(); pdf.addImage(img,'JPEG',0,-y,pw,ih); y+=ph; }
   return pdf.output('arraybuffer');
