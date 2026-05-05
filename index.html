@@ -119,12 +119,13 @@ body {
 .btn-save:hover { background: var(--gold-light); }
 .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
 .header-logo-au {
-  height: 50px; width: auto; flex-shrink: 0;
-  filter: brightness(0) invert(1);
+  height: 38px; width: auto; flex-shrink: 0;
   object-fit: contain;
+  mix-blend-mode: screen;
+  opacity: 0.92;
 }
 .header-logo-cgd {
-  height: 50px; width: 50px; flex-shrink: 0;
+  height: 44px; width: 44px; flex-shrink: 0;
   border-radius: 50%; object-fit: cover;
   border: 2px solid rgba(255,255,255,0.3);
 }
@@ -453,8 +454,8 @@ td[contenteditable="true"]:focus { background: #fffde0 !important; outline: 1px 
   /* ── Header ── */
   .header { flex-wrap: wrap; gap: 10px; padding: 12px 14px; }
   .header-crest { width: 42px; height: 42px; font-size: 18px; }
-  .header-logo-au { height: 38px; }
-  .header-logo-cgd { height: 38px; width: 38px; }
+  .header-logo-au { height: 30px; }
+  .header-logo-cgd { height: 34px; width: 34px; }
   .header-dept  { font-size: 8px; letter-spacing: 1.5px; }
   .header-title { font-size: 14px; }
   .header-subtitle { font-size: 7.5px; }
@@ -1040,10 +1041,7 @@ async function saveAll() {
   try {
     const tc = google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
-      scope: [
-        'https://www.googleapis.com/auth/drive.file',
-        'https://www.googleapis.com/auth/spreadsheets'
-      ].join(' '),
+      scope: 'https://www.googleapis.com/auth/drive.file',
       callback: async tr => {
         if (tr.error) {
           showToast('❌ Login fail: ' + tr.error, 'error');
@@ -1264,30 +1262,6 @@ async function writeToSheet(token, sheetId, tabName, header, dataRow, needsHeade
       const e = await putRes.json();
       throw new Error('Header likhne mein masla: ' + (e.error?.message || putRes.status));
     }
-
-    // Style header: navy bg, white bold text, freeze row
-    await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requests: [
-          { repeatCell: {
-              range: { sheetId: 0, startRowIndex: 0, endRowIndex: 1 },
-              cell: { userEnteredFormat: {
-                backgroundColor: { red: 0.102, green: 0.153, blue: 0.267 },
-                textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 }, fontSize: 9 },
-                horizontalAlignment: 'CENTER'
-              }},
-              fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)'
-          }},
-          { updateSheetProperties: {
-              properties: { sheetId: 0, gridProperties: { frozenRowCount: 1 } },
-              fields: 'gridProperties.frozenRowCount'
-          }}
-        ]})
-      }
-    );
   }
 
   // 2. Append data row
