@@ -1164,23 +1164,40 @@ function buildDataRow() {
 
 // ─── Get real tab name from Sheets API ───────────────
 async function getTabName(token, sheetId) {
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  if (!res.ok) throw new Error('Sheet info lene mein masla: ' + res.status);
-  const data = await res.json();
-  return data.sheets?.[0]?.properties?.title || 'Sheet1';
+  try {
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      // 403 = Sheets API not enabled OR scope issue
+      if (res.status === 403) throw new Error('Google Sheets API enable karein: Google Cloud Console → APIs & Services → Library → "Google Sheets API" → Enable');
+      console.warn('getTabName warn:', res.status, e?.error?.message);
+      return 'Sheet1'; // fallback
+    }
+    const data = await res.json();
+    return data.sheets?.[0]?.properties?.title || 'Sheet1';
+  } catch(e) {
+    if (e.message.includes('Sheets API')) throw e; // re-throw our custom error
+    console.warn('getTabName error:', e);
+    return 'Sheet1';
+  }
 }
 
 // ─── Check if header row already exists ──────────────
 async function hasHeaderRow(token, sheetId, tabName) {
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tabName)}!A1`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  const data = await res.json();
-  return !!(data.values?.[0]?.[0]);  // true if A1 has content
+  try {
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tabName)}!A1`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) return false;
+    const data = await res.json();
+    return !!(data.values?.[0]?.[0]);
+  } catch(e) {
+    return false;
+  }
 }
 
 // ─── Find or create the master sheet ─────────────────
