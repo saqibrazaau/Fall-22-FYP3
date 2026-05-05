@@ -7,7 +7,7 @@
 
 <script>
   const GOOGLE_CLIENT_ID = '629177163875-f4rdrj9uekvk0u5djjukr65edtuujb44.apps.googleusercontent.com';
-  const DRIVE_FOLDER_ID  = 'https://drive.google.com/drive/folders/1mT_4Fw8LBf_41aWj9YRggq4QirUNGVcb?usp=drive_link';
+  const DRIVE_FOLDER_ID  = '1mT_4Fw8LBf_41aWj9YRggq4QirUNGVcb';
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -118,6 +118,9 @@ body {
 .btn-drive { background: rgba(255,255,255,0.1); color: var(--white); border: 1px solid rgba(255,255,255,0.25); }
 .btn-drive:hover { background: rgba(255,255,255,0.2); }
 .btn-drive:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-sheet { background: #1a6e3a; color: var(--white); border: 1px solid #2d9e55; }
+.btn-sheet:hover { background: #228048; }
+.btn-sheet:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ══════════════════════════════════════════
    SECTIONS
@@ -446,8 +449,8 @@ td[contenteditable="true"]:focus { background: #fffde0 !important; outline: 1px 
   .header-dept  { font-size: 8px; letter-spacing: 1.5px; }
   .header-title { font-size: 14px; }
   .header-subtitle { font-size: 7.5px; }
-  .header-actions { flex-direction: row; width: 100%; gap: 8px; }
-  .btn { flex: 1; justify-content: center; padding: 8px 10px; font-size: 10px; }
+  .header-actions { flex-direction: row; width: 100%; gap: 6px; flex-wrap: wrap; }
+  .btn { flex: 1; justify-content: center; padding: 8px 6px; font-size: 9px; min-width: 80px; }
 
   /* ── Body ── */
   .body-wrap { padding: 10px 10px 20px; }
@@ -620,7 +623,8 @@ td[contenteditable="true"]:focus { background: #fffde0 !important; outline: 1px 
     </div>
     <div class="header-actions">
       <button class="btn btn-print" onclick="window.print()">🖨 Print / Save as PDF</button>
-      <button class="btn btn-drive" id="driveBtn" onclick="saveToDrive()">⬆ Save to Google Drive</button>
+      <button class="btn btn-drive" id="driveBtn" onclick="saveToDrive()">⬆ Save PDF to Drive</button>
+      <button class="btn btn-sheet" id="sheetBtn" onclick="saveToSheet()">📊 Save to Google Sheet</button>
     </div>
   </div>
 
@@ -998,10 +1002,13 @@ async function generatePDFBlob() {
 }
 
 async function uploadToDrive(token, buf) {
-  const title = document.getElementById('groupSelect')?.dataset.title || document.querySelector('.af-cell.filled')?.textContent?.trim() || 'FYP3';
-  const date  = new Date().toISOString().slice(0,10);
-  const meta  = { name:`FYP3-Marking-${title}-${date}.pdf`, mimeType:'application/pdf',
-    ...(DRIVE_FOLDER_ID && !DRIVE_FOLDER_ID.includes('YOUR') ? { parents:[DRIVE_FOLDER_ID] } : {}) };
+  const project  = document.getElementById('groupSelect')?.dataset.title || 'FYP3';
+  const evaluator = getEvaluatorName();
+  const date     = new Date().toISOString().slice(0,10);
+  const safeName = (s) => s.replace(/[^a-zA-Z0-9 _-]/g,'').trim().replace(/\s+/g,'_');
+  const fileName = `${safeName(evaluator)}_${safeName(project)}_${date}.pdf`;
+  const meta  = { name: fileName, mimeType:'application/pdf',
+    ...(DRIVE_FOLDER_ID ? { parents:[DRIVE_FOLDER_ID] } : {}) };
   const form  = new FormData();
   form.append('metadata', new Blob([JSON.stringify(meta)], {type:'application/json'}));
   form.append('file',     new Blob([buf], {type:'application/pdf'}));
@@ -1034,6 +1041,220 @@ async function saveToDrive() {
     });
     tc.requestAccessToken({prompt:'consent'});
   } catch(e) { showToast('❌ Google API load nahi hua','error'); btn.disabled=false; btn.textContent='⬆ Save to Google Drive'; setOverlay(false); }
+}
+
+// ─── Helper: get evaluator name ──────────────────────
+function getEvaluatorName() {
+  // Evaluator Name is the 6th contenteditable in info-table (Date, Venue, Name)
+  const cells = document.querySelectorAll('.info-table td[contenteditable]');
+  return cells[2]?.textContent?.trim() || 'Evaluator';
+}
+
+// ─── Helper: get selected role ────────────────────────
+function getRole() {
+  const checked = document.querySelector('input[name="role"]:checked');
+  if (!checked) return '';
+  return checked.closest('label')?.textContent?.trim() || '';
+}
+
+// ─── Helper: get recommendation ──────────────────────
+function getRecommendation() {
+  const checked = document.querySelector('input[name="rec"]:checked');
+  if (!checked) return '';
+  return checked.closest('.rec-card')?.querySelector('.rec-title')?.textContent?.replace('☐','').trim() || '';
+}
+
+// ─── Collect all marks data ───────────────────────────
+function collectMarksData() {
+  const groupId  = document.getElementById('groupSelect')?.value || '';
+  const group    = FYP_GROUPS.find(g => g.id === groupId);
+  const date     = new Date().toLocaleString('en-PK');
+  const evaluator = getEvaluatorName();
+  const role     = getRole();
+  const remarks  = document.querySelector('.remarks-box')?.textContent?.trim() || '';
+  const recommendation = getRecommendation();
+
+  // Per-criterion marks for each student
+  const criterionData = [];
+  RUBRIC.forEach(grp => {
+    grp.items.forEach(item => {
+      [1,2,3].forEach(s => {
+        const val = parseInt(document.getElementById(`sl_${item.id}_${s}`)?.value) || 0;
+        criterionData.push({ label: item.label, name: item.name.replace(/&amp;/g,'&').replace(/<[^>]+>/g,''), max: item.max, student: s, val });
+      });
+    });
+  });
+
+  // Section subtotals
+  const secTotals = [1,2,3].map(s =>
+    RUBRIC.map((grp, gi) => parseInt(document.getElementById(`g${gi+1}s${s}`)?.textContent) || 0)
+  );
+
+  // Grand totals
+  const grandTotals = [1,2,3].map(s => parseInt(document.getElementById(`tot${s}`)?.textContent) || 0);
+
+  return { group, groupId, date, evaluator, role, remarks, recommendation, criterionData, secTotals, grandTotals };
+}
+
+// ─── Build sheet row ──────────────────────────────────
+function buildSheetRows(d) {
+  const g = d.group;
+  const memberNames = g?.members.map(m => m.name).join(', ')  || '';
+  const memberRegs  = g?.members.map(m => m.reg).join(', ')   || '';
+
+  // Header row
+  const header = [
+    'Timestamp','Evaluator','Role','FYP ID','Project Title','Section','Supervisor',
+    'Student Names','Registration Nos',
+    // Per criterion (label only)
+    ...RUBRIC.flatMap(grp => grp.items.flatMap(item =>
+      [`${item.label} (S1)`, `${item.label} (S2)`, `${item.label} (S3)`]
+    )),
+    // Section subtotals
+    ...RUBRIC.flatMap((grp,gi) => [`Sec${gi+1} Total S1`,`Sec${gi+1} Total S2`,`Sec${gi+1} Total S3`]),
+    'Grand Total S1','Grand Total S2','Grand Total S3',
+    'Recommendation','Remarks'
+  ];
+
+  // Data row
+  const criterionValues = RUBRIC.flatMap(grp =>
+    grp.items.flatMap(item =>
+      [1,2,3].map(s => parseInt(document.getElementById(`sl_${item.id}_${s}`)?.value) || 0)
+    )
+  );
+  const secTotalValues = d.secTotals.flatMap((_, si) =>
+    d.secTotals[0].map((_, gi) => d.secTotals[si][gi])
+  );
+  // Reorder: for each section, S1 S2 S3
+  const secBySection = RUBRIC.flatMap((grp, gi) =>
+    [0,1,2].map(s => d.secTotals[s][gi])
+  );
+
+  const dataRow = [
+    d.date, d.evaluator, d.role, d.groupId,
+    g?.title || '', g ? `BSCGD 22 - Sec ${g.sec}` : '', g?.supervisor || '',
+    memberNames, memberRegs,
+    ...criterionValues,
+    ...secBySection,
+    ...d.grandTotals,
+    d.recommendation, d.remarks
+  ];
+
+  return { header, dataRow };
+}
+
+// ─── Find or create sheet in Drive folder ────────────
+const SHEET_NAME = 'FYP-III Marks Log';
+
+async function getOrCreateSheet(token) {
+  setOverlay(true, 'Google Sheet dhundh raha hai...');
+  // Search existing
+  const searchRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='${SHEET_NAME}'+and+'${DRIVE_FOLDER_ID}'+in+parents+and+mimeType='application/vnd.google-apps.spreadsheet'+and+trashed=false&fields=files(id,name,webViewLink)`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const searchData = await searchRes.json();
+  if (searchData.files?.length > 0) {
+    return { id: searchData.files[0].id, link: searchData.files[0].webViewLink, isNew: false };
+  }
+  // Create new
+  setOverlay(true, 'Naya Google Sheet bana raha hai...');
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: SHEET_NAME,
+      mimeType: 'application/vnd.google-apps.spreadsheet',
+      parents: [DRIVE_FOLDER_ID]
+    })
+  });
+  const created = await createRes.json();
+  return { id: created.id, link: created.webViewLink, isNew: true };
+}
+
+// ─── Append / write sheet data ────────────────────────
+async function writeSheetData(token, sheetId, header, dataRow, isNew) {
+  setOverlay(true, 'Sheet mein data likh raha hai...');
+
+  if (isNew) {
+    // Write header first, then data
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet1!A1?valueInputOption=USER_ENTERED`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: [header, dataRow] })
+      }
+    );
+    // Bold + freeze header row
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: [
+        { repeatCell: {
+            range: { sheetId:0, startRowIndex:0, endRowIndex:1 },
+            cell: { userEnteredFormat: {
+              backgroundColor: { red:0.10, green:0.15, blue:0.27 },
+              textFormat: { bold:true, foregroundColor:{ red:1,green:1,blue:1 } }
+            }},
+            fields: 'userEnteredFormat(backgroundColor,textFormat)'
+          }
+        },
+        { updateSheetProperties: {
+            properties: { sheetId:0, gridProperties:{ frozenRowCount:1 } },
+            fields: 'gridProperties.frozenRowCount'
+          }
+        }
+      ]})
+    });
+  } else {
+    // Append new row
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet1!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: [dataRow] })
+      }
+    );
+  }
+}
+
+// ─── Main: Save to Sheet ──────────────────────────────
+async function saveToSheet() {
+  const groupId = document.getElementById('groupSelect')?.value;
+  if (!groupId) { showToast('⚠️ Pehle FYP Group select karein', 'error', 5000); return; }
+
+  const btn = document.getElementById('sheetBtn');
+  btn.disabled = true; btn.textContent = '⏳ Processing...';
+
+  try {
+    const tc = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets',
+      callback: async tr => {
+        if (tr.error) {
+          showToast('❌ Login fail: ' + tr.error, 'error');
+          btn.disabled=false; btn.textContent='📊 Save to Google Sheet'; setOverlay(false); return;
+        }
+        try {
+          const { header, dataRow } = buildSheetRows(collectMarksData());
+          const { id, link, isNew } = await getOrCreateSheet(tr.access_token);
+          await writeSheetData(tr.access_token, id, header, dataRow, isNew);
+          setOverlay(false);
+          showToast(
+            `✅ Sheet mein save ho gaya!<br><a href="${link}" target="_blank">📊 Sheet kholein →</a>`,
+            'success', 9000
+          );
+        } catch(e) { setOverlay(false); showToast('❌ Error: ' + e.message, 'error'); }
+        btn.disabled=false; btn.textContent='📊 Save to Google Sheet';
+      }
+    });
+    tc.requestAccessToken({ prompt:'consent' });
+  } catch(e) {
+    showToast('❌ Google API load nahi hua','error');
+    btn.disabled=false; btn.textContent='📊 Save to Google Sheet'; setOverlay(false);
+  }
 }
 
 // ─── FYP Groups Data ─────────────────────────────────
